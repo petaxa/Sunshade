@@ -22,8 +22,8 @@ pub fn clone(eclipse_path: &str) -> Result<(), &'static str> {
 
     // ソースコードのクローン
     match do_clone(&workspace_dir) {
-        Ok(_) => {},
-        Err(_) => return Err("リポジトリのクローンに失敗しました")
+        Ok(_) => {}
+        Err(_) => return Err("リポジトリのクローンに失敗しました"),
     };
     return Ok(());
 }
