@@ -4,7 +4,7 @@ use std::{env, process::exit};
 mod infra;
 mod interfaces;
 mod service;
-use infra::{RealCommandExecutor, RealFileSystem};
+use infra::{RealCommandExecutor, RealFileSystem, RealHttp, RealIo};
 
 fn main() {
     // .env の読み込み
@@ -12,8 +12,10 @@ fn main() {
 
     let command_executor = RealCommandExecutor;
     let file_system = RealFileSystem;
+    let io = RealIo;
+    let http = RealHttp;
 
-    let installer_path = service::download().unwrap_or_else(|e| {
+    let installer_path = service::download(&file_system, &io, &http).unwrap_or_else(|e| {
         println!("{}", e);
         exit(1);
     });
@@ -24,7 +26,7 @@ fn main() {
     });
 
     let repo_url = env::var("REPO_URL").expect("リポジトリの URL を取得できませんでした");
-    service::clone(command_executor, file_system, &eclipse_path, &repo_url).unwrap_or_else(|e| {
+    service::clone(&command_executor, &file_system, &eclipse_path, &repo_url).unwrap_or_else(|e| {
         println!("{}", e);
         exit(1);
     });
