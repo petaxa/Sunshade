@@ -1,16 +1,16 @@
 use crate::interfaces::{CommandExecutor, FileSystem};
 
 /// workspace ディレクトリにソースコードをクローンする
-pub fn clone(
-    command_executor: &dyn CommandExecutor,
-    file_system: &dyn FileSystem,
+pub fn clone<CE: CommandExecutor, F: FileSystem>(
+    command_executor: CE,
+    file_system: F,
     eclipse_path: &str,
     repo_url: &str,
 ) -> Result<(), &'static str> {
     let workspace_dir: String = format!("{}/workspace", eclipse_path);
 
     // workspace ディレクトリを作成
-    match file_system.create_dir(&workspace_dir) {
+    match file_system.create_dir_all(&workspace_dir) {
         Ok(_) => {}
         Err(_) => return Err("workspace ディレクトリの作成に失敗しました"),
     };
