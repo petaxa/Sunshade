@@ -2,8 +2,8 @@ use crate::interfaces::{CommandExecutor, FileSystem};
 
 /// workspace ディレクトリにソースコードをクローンする
 pub fn clone<CE: CommandExecutor, F: FileSystem>(
-    command_executor: CE,
-    file_system: F,
+    command_executor: &CE,
+    file_system: &F,
     eclipse_path: &str,
     repo_url: &str,
 ) -> Result<(), &'static str> {
