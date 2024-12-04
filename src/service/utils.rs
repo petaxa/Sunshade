@@ -15,11 +15,11 @@ pub fn read_yes_or_no<IO: Io>(io: &IO) -> YesNo {
                 "y" | "yes" => return YesNo::Yes,
                 "n" | "no" => return YesNo::No,
                 _ => {
-                    io.println("無効な入力です。y または n を入力してください。");
+                    io.println("無効な入力です。y または n を入力してください。").unwrap();
                 }
             },
             Err(_) => {
-                io.println("入力の読み込みに失敗しました");
+                io.println("入力の読み込みに失敗しました").unwrap();
                 return YesNo::No;
             }
         }
