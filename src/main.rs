@@ -24,7 +24,7 @@ fn main() {
     });
 
     let repo_url = env::var("REPO_URL").expect("リポジトリの URL を取得できませんでした");
-    service::clone(&command_executor, &file_system, &eclipse_path, &repo_url).unwrap_or_else(|e| {
+    service::clone(command_executor, file_system, &eclipse_path, &repo_url).unwrap_or_else(|e| {
         println!("{}", e);
         exit(1);
     });
