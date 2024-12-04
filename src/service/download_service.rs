@@ -22,25 +22,25 @@ impl Config {
 /// 対話形式でバージョンを指定でき、
 /// 同一ファイルが存在する場合はそれを使ってインストール作業へ移行することもできる
 pub fn download<F: FileSystem, IO: Io, H: Http>(
-    file_system: F,
-    io: IO,
-    http: H,
+    file_system: &F,
+    io: &IO,
+    http: &H,
 ) -> Result<String, &'static str> {
     let config: Config = Config::new();
 
     // ダウンロードするバージョンを確定
-    let version = confirm_version(&io, config.default_vesion.to_string())?;
+    let version = confirm_version(io, config.default_vesion.to_string())?;
 
     // ダウンロード予定のファイルと同一のファイルが存在するか確認
     let file_path = format!("{}/{}.exe", config.download_dir, version);
-    if Path::new(&file_path).exists() && confirm_use_existing_file(&io, &file_path)? {
+    if Path::new(&file_path).exists() && confirm_use_existing_file(io, &file_path)? {
         return Ok(file_path);
     }
 
     // ファイルをダウンロード
     println!("{}.exe をダウンロードします。", version);
     let url = construct_download_url(version)?;
-    match do_download(&file_system, &io, &http, &url, &file_path) {
+    match do_download(file_system, io, http, &url, &file_path) {
         Ok(_) => return Ok(file_path),
         Err(_) => return Err("ダウンロードに失敗"),
     }
