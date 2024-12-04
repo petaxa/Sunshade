@@ -20,10 +20,11 @@ fn main() {
         exit(1);
     });
 
-    let eclipse_path = service::install(&installer_path).unwrap_or_else(|e| {
-        println!("{}", e);
-        exit(1);
-    });
+    let eclipse_path =
+        service::install(&command_executor, &io, &installer_path).unwrap_or_else(|e| {
+            println!("{}", e);
+            exit(1);
+        });
 
     let repo_url = env::var("REPO_URL").expect("リポジトリの URL を取得できませんでした");
     service::clone(&command_executor, &file_system, &eclipse_path, &repo_url).unwrap_or_else(|e| {
