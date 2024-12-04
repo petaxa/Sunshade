@@ -55,12 +55,12 @@ fn confirm_version<IO: Io>(io: &IO, default_varsion: String) -> Result<String, &
     io.println(&format!(
         "バージョン {} をダウンロードします。よろしいですか？[y/n]",
         version
-    ));
+    ))?;
 
     let input = utils::read_yes_or_no(io);
     // No の場合はバージョンをもらう
     if input == utils::YesNo::No {
-        io.println("ダウンロードしたいバージョンを入力してください。ex. pleiades-2024-09-java-win-64bit-jre_20240917");
+        io.println("ダウンロードしたいバージョンを入力してください。ex. pleiades-2024-09-java-win-64bit-jre_20240917")?;
         version.clear();
         io.read_line(&mut version)
             .expect("バージョンの読み込みに失敗しました");
@@ -73,7 +73,7 @@ fn confirm_use_existing_file<IO: Io>(io: &IO, file_path: &str) -> Result<bool, &
     io.println(&format!(
         "既に {} が存在します。このファイルを利用してインストール作業を続けますか？[y/n]",
         file_path
-    ));
+    ))?;
     let input = utils::read_yes_or_no(io);
     match input {
         utils::YesNo::Yes => return Ok(true),
@@ -137,14 +137,14 @@ fn do_download<F: FileSystem, IO: Io, H: Http>(
 
             // 進行状況の表示
             let per = downloaded as f64 / total_size as f64 * 100.0;
-            io.print(&format!("\rダウンロード進行状況: {:.2}%", per));
+            io.print(&format!("\rダウンロード進行状況: {:.2}%", per))?;
 
             // TODO: progress bar を実装したい気持ち。
             // よさそうなライブラリを探そう
 
-            io.flush();
+            io.flush()?;
         }
-        io.print("\n");
+        io.print("\n")?;
     }
 
     Ok(())
