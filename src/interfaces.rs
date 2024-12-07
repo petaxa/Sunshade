@@ -8,7 +8,6 @@ pub trait FileSystem {
     fn file_write_all(&self, file: &mut File, buf: &[u8]) -> Result<(), &'static str>;
     fn read(
         &self,
-        // TODO: ここ、blocking 型に縛るのは間違い。.read() を持つほかの Response 型も受け付けられるようにしたい。
         response: &mut reqwest::blocking::Response,
         buf: &mut [u8],
     ) -> Result<usize, &'static str>;
