@@ -1,13 +1,10 @@
+mod clone_service;
+mod download_service;
+mod install_service;
+mod start_eclipse_service;
 mod utils;
 
-mod download_service;
-pub use download_service::download;
-
-mod install_service;
-pub use install_service::install;
-
-mod clone_service;
 pub use clone_service::clone;
-
-mod start_eclipse_service;
+pub use download_service::download;
+pub use install_service::install;
 pub use start_eclipse_service::start_eclipse;
