@@ -17,7 +17,7 @@ impl FileSystem for RealFileSystem {
     }
 
     fn file_create(&self, path: &Path) -> Result<File, &'static str> {
-        fs::File::create(path).map_err(|_| "ディレクトリの作成に失敗しました")
+        fs::File::create(path).map_err(|_| "ファイルの作成に失敗しました")
     }
 
     fn file_write_all(&self, file: &mut File, buf: &[u8]) -> Result<(), &'static str> {
