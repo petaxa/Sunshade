@@ -44,7 +44,7 @@ impl CommandExecutor for RealCommandExecutor {
             .args(args)
             .status()
             .map(|s| s.success())
-            .map_err(|_| "コマンドの実行に失敗しました");
+            .map_err(|_| "コマンドの実行に失敗しました")
     }
 }
 
