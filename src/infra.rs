@@ -1,5 +1,5 @@
-use reqwest::{self};
 use crate::interfaces::{CommandExecutor, FileSystem, Http, Io};
+use reqwest::{self};
 use std::{
     fs,
     fs::File,
@@ -40,11 +40,11 @@ pub struct RealCommandExecutor;
 
 impl CommandExecutor for RealCommandExecutor {
     fn run_command(&self, command: &str, args: &[&str]) -> Result<bool, &'static str> {
-        let status = Command::new(command).args(args).status();
-        match status {
-            Ok(status) => Ok(status.success()),
-            Err(_) => Err("コマンドの実行に失敗しました"),
-        }
+        Command::new(command)
+            .args(args)
+            .status()
+            .map(|s| s.success())
+            .map_err(|_| "コマンドの実行に失敗しました");
     }
 }
 
