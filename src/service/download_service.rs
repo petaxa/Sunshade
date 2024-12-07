@@ -1,10 +1,6 @@
-use reqwest::blocking::get;
-use std::{
-    env,
-    fs::{self, File},
-    io::{self, Read, Write},
-    path::Path,
-};
+use super::utils::{self};
+use crate::interfaces::{FileSystem, Http, Io};
+use std::{env, path::Path};
 
 struct Config {
     download_dir: String,
@@ -25,22 +21,26 @@ impl Config {
 ///
 /// 対話形式でバージョンを指定でき、
 /// 同一ファイルが存在する場合はそれを使ってインストール作業へ移行することもできる
-pub fn download() -> Result<String, &'static str> {
+pub fn download<F: FileSystem, IO: Io, H: Http>(
+    file_system: &F,
+    io: &IO,
+    http: &H,
+) -> Result<String, &'static str> {
     let config: Config = Config::new();
 
     // ダウンロードするバージョンを確定
-    let version = confirm_version(config.default_vesion.to_string())?;
+    let version = confirm_version(io, config.default_vesion.to_string())?;
 
     // ダウンロード予定のファイルと同一のファイルが存在するか確認
     let file_path = format!("{}/{}.exe", config.download_dir, version);
-    if Path::new(&file_path).exists() && confirm_use_existing_file(&file_path)? {
+    if Path::new(&file_path).exists() && confirm_use_existing_file(io, &file_path)? {
         return Ok(file_path);
     }
 
     // ファイルをダウンロード
     println!("{}.exe をダウンロードします。", version);
     let url = construct_download_url(version)?;
-    match do_download(&url, &file_path) {
+    match do_download(file_system, io, http, &url, &file_path) {
         Ok(_) => return Ok(file_path),
         Err(_) => return Err("ダウンロードに失敗"),
     }
@@ -49,37 +49,35 @@ pub fn download() -> Result<String, &'static str> {
 /// ダウンロードするインストーラのバージョンを決定
 ///
 /// デフォルトでない場合、入力を行う
-fn confirm_version(default_varsion: String) -> Result<String, &'static str> {
+fn confirm_version<IO: Io>(io: &IO, default_varsion: String) -> Result<String, &'static str> {
     let mut version = default_varsion;
-    println!(
+
+    io.println(&format!(
         "バージョン {} をダウンロードします。よろしいですか？[y/n]",
         version
-    );
-    let input = super::utils::read_yes_or_no();
+    ))?;
 
+    let input = utils::read_yes_or_no(io);
     // No の場合はバージョンをもらう
-    if input == super::utils::YesNo::No {
-        println!(
-                "ダウンロードしたいバージョンを入力してください。ex. pleiades-2024-09-java-win-64bit-jre_20240917"
-            );
+    if input == utils::YesNo::No {
+        io.println("ダウンロードしたいバージョンを入力してください。ex. pleiades-2024-09-java-win-64bit-jre_20240917")?;
         version.clear();
-        io::stdin()
-            .read_line(&mut version)
+        io.read_line(&mut version)
             .expect("バージョンの読み込みに失敗しました");
     }
     return Ok(version);
 }
 
 /// 既存のインストーラを利用するか確認
-fn confirm_use_existing_file(file_path: &str) -> Result<bool, &'static str> {
-    println!(
+fn confirm_use_existing_file<IO: Io>(io: &IO, file_path: &str) -> Result<bool, &'static str> {
+    io.println(&format!(
         "既に {} が存在します。このファイルを利用してインストール作業を続けますか？[y/n]",
         file_path
-    );
-    let input = super::utils::read_yes_or_no();
+    ))?;
+    let input = utils::read_yes_or_no(io);
     match input {
-        super::utils::YesNo::Yes => return Ok(true),
-        super::utils::YesNo::No => {
+        utils::YesNo::Yes => return Ok(true),
+        utils::YesNo::No => {
             println!("セットアップ作業をキャンセルします。");
             return Err("既存ファイル解凍拒否");
         }
@@ -98,23 +96,29 @@ fn construct_download_url(version: String) -> Result<String, &'static str> {
 /// ダウンロード作業ロジックの本体
 ///
 /// ダウンロード先ディレクトリの作成、進捗の表示、ファイルのダウンロードと書き込みを行う
-fn do_download(url: &str, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn do_download<F: FileSystem, IO: Io, H: Http>(
+    file_system: &F,
+    io: &IO,
+    http: &H,
+    url: &str,
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     // TODO: エラーメッセージを詳しく出力できるようにする。
     // それぞれにmatch 式をつけるとか？
 
     let file_path = Path::new(file_path);
 
     // URLからファイルを取得
-    let mut response = get(url)?;
+    let mut response = http.blocking_get(url)?;
 
     // 親ディレクトリが存在しない場合、再帰的にディレクトリを作成
     if let Some(parent_dir) = file_path.parent() {
         if !parent_dir.exists() {
-            fs::create_dir_all(parent_dir)?;
+            file_system.create_dir_all(parent_dir)?;
         }
     }
     // ファイル作成
-    let mut file = File::create(file_path)?;
+    let mut file = file_system.file_create(file_path)?;
 
     // レスポンスの内容をバッファに入れて1バイトずつ書き込み
     {
@@ -124,23 +128,23 @@ fn do_download(url: &str, file_path: &str) -> Result<(), Box<dyn std::error::Err
         let mut downloaded: u64 = 0;
 
         let mut buffer = [0; 1024];
-        while let Ok(bytes_read) = response.read(&mut buffer) {
+        while let Ok(bytes_read) = file_system.read(&mut response, &mut buffer) {
             if bytes_read == 0 {
                 break;
             }
-            file.write_all(&buffer[..bytes_read])?;
+            file_system.file_write_all(&mut file, &buffer[..bytes_read])?;
             downloaded += bytes_read as u64;
 
             // 進行状況の表示
             let per = downloaded as f64 / total_size as f64 * 100.0;
-            print!("\rダウンロード進行状況: {:.2}%", per);
+            io.print(&format!("\rダウンロード進行状況: {:.2}%", per))?;
 
             // TODO: progress bar を実装したい気持ち。
             // よさそうなライブラリを探そう
 
-            io::stdout().flush().unwrap();
+            io.flush()?;
         }
-        print!("\n");
+        io.print("\n")?;
     }
 
     Ok(())
